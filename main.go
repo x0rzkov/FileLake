@@ -1,6 +1,6 @@
 package main
 import (
-	"FileLake/config"
+	"FileLake/common/config"
 	//_ "FileLake/docs"
 	"FileLake/router"
 	"log"
