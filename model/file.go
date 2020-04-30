@@ -1,36 +1,108 @@
 package model
 
+import (
+	"FileLake/common/logger"
+	"fmt"
+	"go.uber.org/zap"
+)
+
+//******************************************************************//
+//**File 类型定义
+//******************************************************************//
 type File struct {
 	Id             int64  `xorm:"pk autoincr comment('自增ID') BIGINT(20)" json:"id"`
-	ServiceLink    string `xorm:"pk name:service_link char(64) not null" json:"service_link"`
-	SeaweedfsId    string `xorm:"name:seaweedfs_id varchar(64)" json:"seaweedfs_id"`
-	AccountAddress string `xorm:"name:account_address varchar(64)" json:"account_address"`
-	ExpireTime     int    `xorm:"name:expire_time  BIGINT(20)" json:"expire_time"`
+	ServiceLink    string `xorm:"service_link char(64) not null" json:"service_link"`
+	SeaweedfsId    string `xorm:"seaweedfs_id varchar(64)" json:"seaweedfs_id"`
+	AccountAddress string `xorm:"account_address varchar(64)" json:"account_address"`
+	ExpireTime     int    `xorm:"expire_time  BIGINT(20)" json:"expire_time"`
 }
 
+//******************************************************************//
+//** 同步表结构
+//******************************************************************//
 
-func (File) TableName() string {
-	return "file"
+func (t *File) SyncTable() error {
+	db := GetXOrmInstance()
+	if db == nil {
+		return fmt.Errorf("XOrmInstance is null.")
+	}
+	return db.Sync2(t)
 }
 
-func (file *File) Add() {
-	DB.Create(file)
+//******************************************************************//
+//** 追加一条记录
+//******************************************************************//
+func (t *File) Add() error {
+	db := GetXOrmInstance()
+	if db == nil {
+		return fmt.Errorf("XOrmInstance is null.")
+	}
+	t.Id = 0
+	_, err := db.InsertOne(t)
+
+	return err
 }
 
-func (file *File) Update() {
-	DB.Save(file)
+//******************************************************************//
+//** 取得一条记录
+//******************************************************************//
+func (t *File) GetByServiceLink() (*File, error) {
+	db := GetXOrmInstance()
+	if db == nil {
+		return nil, fmt.Errorf("XOrmInstance is null.")
+	}
+	out := File{}
+	has, err := db.Where("service_link = ?", t.ServiceLink).Get(&out)
+	if err != nil {
+		logger.Error("err", zap.Any("err", err))
+		return nil, err
+	}
+	if !has {
+		err = fmt.Errorf("No proper record")
+		logger.Error("err", zap.Any("err", err))
+		return nil, err
+	}
+	return &out, nil
 }
 
-func (file *File) GetUserFile(seaweedfsId string, accountAddress string) (File, error) {
-	result := DB.Where("seaweedfs_id = ? AND AccountAddress = ?", seaweedfsId, accountAddress).Find(file)
-	return *file, result.Error
+//******************************************************************//
+//** 删除一条记录
+//******************************************************************//
+func (t *File) DeleteByServiceLink() error {
+	db := GetXOrmInstance()
+	if db == nil {
+		return fmt.Errorf("XOrmInstance is null.")
+	}
+	out := File{}
+	has, err := db.Where("service_link = ?", t.ServiceLink).Get(&out)
+	if err != nil {
+		logger.Error("err", zap.Any("err", err))
+		return err
+	}
+	if !has {
+		err = fmt.Errorf("No proper record")
+		logger.Error("err", zap.Any("err", err))
+		return err
+	}
+	_, err = db.Delete(out)
+	if err != nil {
+		logger.Error("err", zap.Any("err", err))
+		return err
+	}
+	return nil
 }
-
-func (file *File) GetFileByLink(serviceLink string) (File, error) {
-	result := DB.First(file, serviceLink)
-	return *file, result.Error
-}
-
-func (file *File) DeleteUser(serviceLink string) {
-	DB.Delete(file, serviceLink)
+//******************************************************************//
+//** 取得多条记录
+//******************************************************************//
+func (t *File) GetbyFid() ([]*File, error) {
+	out := make([]*File, 0)
+	db := GetXOrmInstance()
+	if db == nil {
+		return out, fmt.Errorf("XOrmInstance is null.")
+	}
+	err := db.Where("service_link = ?", t.ServiceLink).Find(&out)
+	if err != nil {
+		logger.Error("err", zap.Any("err", err))
+	}
+	return out, err
 }

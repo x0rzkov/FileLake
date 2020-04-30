@@ -2,9 +2,9 @@ package model
 
 import (
 	"FileLake/common/logger"
+	"github.com/go-xorm/xorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"go.uber.org/zap"
-	"github.com/go-xorm/xorm"
 )
 
 //var DB *gorm.DB
@@ -55,7 +55,6 @@ func GetDBEngine(conn string) *xorm.Engine {
 	}
 
 	engine.SetLogger(logger.GetXormLogger())
-
 
 	engine.ShowSQL()
 
